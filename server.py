@@ -1,70 +1,146 @@
-import re
 from mcp.server.fastmcp import FastMCP
 from tools.weather import get_weather
 from tools.calculator import (
+    calculate,
     evaluate_expression,
     simple_interest,
     compound_interest,
-    emi,
-    calculate
+    emi
 )
 
 mcp = FastMCP("Orchestration MCP Server")
 
+# ================== MATH TOOLS ==================
+
 @mcp.tool()
-def agent_router(user_query: str) -> dict:
-    q = user_query.lower().strip()
+def math_calculator(a: float, b: float, operation: str) -> float:
+    """
+    [math]
+    Perform a basic arithmetic operation on two numbers.
 
-    # ---------- SIMPLE INTEREST ----------
-    if q.startswith("si") or "simple interest" in q:
-        nums = list(map(float, re.findall(r"\d+\.?\d*", q)))
-        if len(nums) != 3:
-            return {"result": "Format: SI <Principal> <Rate> <Time>"}
+    Use this tool when the user asks for simple calculations
+    like addition, subtraction, multiplication, or division.
 
-        p, r, t = nums
-        return {"result": simple_interest(p, r, t)}
+    Parameters:
+    - a: first number (example: 10)
+    - b: second number (example: 5)
+    - operation: one of [add, sub, mul, div]
 
-    # ---------- COMPOUND INTEREST ----------
-    if q.startswith("ci") or "compound interest" in q:
-        nums = list(map(float, re.findall(r"\d+\.?\d*", q)))
-        if len(nums) != 3:
-            return {"result": "Format: CI <Principal> <Rate> <Time>"}
+    Example queries:
+    - "Add 10 and 5"
+    - "Divide 100 by 4"
+    """
+    return calculate(a, b, operation)
 
-        p, r, t = nums
-        return {"result": compound_interest(p, r, t)}
 
-    # ---------- EMI ----------
-    if q.startswith("emi"):
-        nums = list(map(float, re.findall(r"\d+\.?\d*", q)))
-        if len(nums) != 3:
-            return {"result": "Format: EMI <Principal> <Rate> <Years>"}
+@mcp.tool()
+def math_expression(expression: str) -> float:
+    """
+    [math]
+    Evaluate a full mathematical expression following BODMAS rules.
 
-        p, r, t = nums
-        return {"result": emi(p, r, t)}
+    Use this tool when the user provides a complete expression
+    instead of separate numbers.
 
-    # ---------- CALCULATOR ----------
-    math_expr = q.replace(" ", "").strip()
+    Parameters:
+    - expression: math expression as a string
+      (example: "5 + 6 * (2 - 1)")
 
-    if re.match(r"^[0-9+\-*/().^]+$", math_expr) and any(op in math_expr for op in "+-*/"):
-        try:
-            result = evaluate_expression(math_expr.replace("^", "**"))
-            return {"result": result}
-        except Exception:
-            return {"result": "Invalid mathematical expression."}
+    Example queries:
+    - "10 + 5 * 3"
+    - "(8 + 2) / 5"
+    """
+    return evaluate_expression(expression.replace("^", "**"))
 
-    # ---------- WEATHER ----------
-    if re.search(r"\b(weather|temperature|temp)\b", q):
-        match = re.search(r"(?:weather|temperature|temp)\s*(?:in|of)?\s*([a-zA-Z\s]{2,25})", q)
-        if not match:
-            return {"result": "Please specify a city name."}
 
-        city = match.group(1)
-        city = re.sub(r"[^a-zA-Z\s]", "", city)
-        city = " ".join(city.split()[:3]).title()
+# ================== FINANCE TOOLS ==================
 
-        return {"result": get_weather(city)}
+@mcp.tool()
+def finance_simple_interest(p: float, r: float, t: float) -> float:
+    """
+    [finance]
+    Calculate Simple Interest (SI).
 
-    return {"result": "Sorry, I could not understand the request."}
+    Use this tool when the user asks for simple interest
+    based on principal, rate, and time.
+
+    Formula:
+    SI = (P × R × T) / 100
+
+    Parameters:
+    - p: principal amount (example: 10000)
+    - r: annual interest rate in percentage (example: 5)
+    - t: time in years (example: 2)
+
+    Example queries:
+    - "Simple interest for 10000 at 5% for 2 years"
+    """
+    return simple_interest(p, r, t)
+
+
+@mcp.tool()
+def finance_compound_interest(p: float, r: float, t: float) -> float:
+    """
+    [finance]
+    Calculate Compound Interest (CI).
+
+    Use this tool when the user asks for compound interest
+    over a period of time.
+
+    Parameters:
+    - p: principal amount (example: 50000)
+    - r: annual interest rate in percentage (example: 8)
+    - t: time in years (example: 3)
+
+    Example queries:
+    - "Compound interest for 50000 at 8% for 3 years"
+    """
+    return compound_interest(p, r, t)
+
+
+@mcp.tool()
+def finance_emi(p: float, annual_rate: float, years: float) -> float:
+    """
+    [finance]
+    Calculate monthly EMI (Equated Monthly Installment) for a loan.
+
+    Use this tool when the user asks about loan EMIs,
+    home loans, car loans, or monthly payments.
+
+    Parameters:
+    - p: loan principal amount (example: 500000)
+    - annual_rate: annual interest rate in percentage (example: 8.5)
+    - years: loan tenure in years (example: 20)
+
+    Returns:
+    - Monthly EMI amount
+
+    Example queries:
+    - "EMI for 5 lakh home loan at 8.5% for 20 years"
+    """
+    return emi(p, annual_rate, years)
+
+
+
+# ================== WEATHER TOOLS ==================
+
+@mcp.tool()
+def weather_current(city: str) -> str:
+    """
+    [weather]
+    Get the current weather conditions of a city.
+
+    Use this tool when the user asks about weather,
+    temperature, humidity, or climate of a place.
+
+    Parameters:
+    - city: name of the city (example: "Bangalore")
+
+    Example queries:
+    - "Weather in Delhi"
+    - "Temperature in Mumbai"
+    """
+    return get_weather(city)
 
 
 if __name__ == "__main__":

@@ -1,19 +1,30 @@
-import requests
 import os
+import requests
 from dotenv import load_dotenv
 from pathlib import Path
 
-# ---- FORCE LOAD .env FROM PROJECT ROOT ----
+# ================= LOAD ENV ================= #
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_PATH = BASE_DIR / ".env"
-
 load_dotenv(dotenv_path=ENV_PATH)
 
 API_KEY = os.getenv("WEATHERSTACK_API_KEY")
 
+# ================= WEATHER LOGIC ================= #
+
 def get_weather(city: str) -> str:
+    """
+    Fetch current weather for a given city.
+
+    Args:
+        city (str): City name (example: "Delhi")
+
+    Returns:
+        str: Human-readable weather report
+    """
     if not API_KEY:
-        return "Weather API key not configured."
+        return "Weather API key is not configured."
 
     url = "http://api.weatherstack.com/current"
     params = {
@@ -25,9 +36,9 @@ def get_weather(city: str) -> str:
         response = requests.get(url, params=params, timeout=5)
         data = response.json()
 
-        # Weatherstack error handling
+        # Weatherstack API error
         if "error" in data:
-            return f"Weather data not found for '{city}'. Please try another city."
+            return f"Weather data not found for '{city}'."
 
         location = data.get("location")
         current = data.get("current")
@@ -40,9 +51,9 @@ def get_weather(city: str) -> str:
         country = location.get("country")
 
         temperature = current.get("temperature")
+        feels_like = current.get("feelslike")
         humidity = current.get("humidity")
         description = current.get("weather_descriptions", [""])[0]
-        feels_like = current.get("feelslike")
 
         return (
             f"🌍 Weather in {city_name}, {region}, {country}\n"
@@ -51,8 +62,7 @@ def get_weather(city: str) -> str:
             f"☁ Condition: {description}"
         )
 
-    except Exception as e:
-        return "Error fetching weather data."
-
-
-
+    except requests.exceptions.RequestException:
+        return "Unable to fetch weather data. Please try again later."
+    except Exception:
+        return "Unexpected error while fetching weather data."

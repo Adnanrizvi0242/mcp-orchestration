@@ -2,7 +2,7 @@ import ast
 import operator
 import math
 
-# ---------------- SAFE EXPRESSION EVALUATOR (BODMAS) ---------------- #
+# ================= SAFE EXPRESSION EVALUATOR ================= #
 
 OPS = {
     ast.Add: operator.add,
@@ -13,25 +13,9 @@ OPS = {
     ast.Mod: operator.mod,
     ast.USub: operator.neg,
 }
-def calculate(a: float, b: float, operation: str) -> float:
-    """
-    Perform basic arithmetic operations
-    operation: add, sub, mul, div
-    """
-    if operation == "add":
-        return a + b
-    if operation == "sub":
-        return a - b
-    if operation == "mul":
-        return a * b
-    if operation == "div":
-        return a / b if b != 0 else "Error: Division by zero"
-    
-    return "Invalid operation"
-
 
 def _eval_ast(node):
-    if isinstance(node, ast.Constant):  # Python 3.8+
+    if isinstance(node, ast.Constant):  # numbers only
         if isinstance(node.value, (int, float)):
             return node.value
         raise ValueError("Invalid constant")
@@ -47,28 +31,46 @@ def _eval_ast(node):
 
     raise ValueError("Invalid expression")
 
-
-
 def evaluate_expression(expression: str) -> float:
     """
-    Evaluates expressions like:
-    5 + 6 * (2 - 1) / 3
+    Safely evaluate a mathematical expression.
+    Example: 5 + 6 * (2 - 1)
     """
     tree = ast.parse(expression, mode="eval")
     return round(_eval_ast(tree.body), 6)
 
+# ================= BASIC CALCULATOR ================= #
 
-# ---------------- FINANCIAL CALCULATIONS ---------------- #
+def calculate(a: float, b: float, operation: str) -> float:
+    """
+    Perform basic arithmetic operations.
+    operation: add | sub | mul | div
+    """
+    if operation == "add":
+        return a + b
+    if operation == "sub":
+        return a - b
+    if operation == "mul":
+        return a * b
+    if operation == "div":
+        if b == 0:
+            raise ValueError("Division by zero")
+        return a / b
+
+    raise ValueError("Invalid operation")
+
+# ================= FINANCIAL CALCULATIONS ================= #
 
 def simple_interest(p: float, r: float, t: float) -> float:
     """
+    Simple Interest
     SI = (P * R * T) / 100
     """
     return round((p * r * t) / 100, 2)
 
-
 def compound_interest(p: float, r: float, t: float, n: int = 1) -> float:
     """
+    Compound Interest
     CI = P * (1 + R/(100*n))^(n*T) - P
     """
     amount = p * pow((1 + r / (100 * n)), (n * t))
@@ -76,10 +78,7 @@ def compound_interest(p: float, r: float, t: float, n: int = 1) -> float:
 
 def emi(p: float, annual_rate: float, years: float) -> float:
     """
-    EMI Calculator
-    p = principal
-    annual_rate = annual interest rate (in %)
-    years = loan tenure in years
+    EMI calculation
     """
     r = annual_rate / (12 * 100)   # monthly interest rate
     n = years * 12                # total months
@@ -89,4 +88,3 @@ def emi(p: float, annual_rate: float, years: float) -> float:
 
     emi_value = (p * r * pow(1 + r, n)) / (pow(1 + r, n) - 1)
     return round(emi_value, 2)
-
